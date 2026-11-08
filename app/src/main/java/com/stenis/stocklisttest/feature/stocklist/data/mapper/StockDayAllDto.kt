@@ -5,7 +5,7 @@ import kotlinx.serialization.Serializable
 
 /** STOCK_DAY_ALL：上市個股日成交資訊（API 數值皆為字串，可能為空字串） */
 @Serializable
-data class StockDayAllDto(
+data class  StockDayAllDto(
     /** 日期（民國年，例：1151106） */
     @SerialName("Date") val date: String = "",
     /** 證券代號 */
