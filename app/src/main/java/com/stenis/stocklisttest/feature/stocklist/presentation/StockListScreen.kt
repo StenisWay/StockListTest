@@ -35,7 +35,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -46,6 +45,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import com.stenis.stocklisttest.R
 import com.stenis.stocklisttest.core.presentation.UiState
+import com.stenis.stocklisttest.core.util.ResourceProvider
 import com.stenis.stocklisttest.feature.stocklist.presentation.component.StockItemCard
 import com.stenis.stocklisttest.feature.stocklist.presentation.component.StockSortBottomSheet
 import com.stenis.stocklisttest.feature.stocklist.presentation.component.StockValuationDialog
@@ -64,7 +64,6 @@ fun StockListRoute(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
-    val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
     var isSortSheetVisible by rememberSaveable { mutableStateOf(false) }
@@ -78,7 +77,7 @@ fun StockListRoute(
                     StockListEffect.ShowSortBottomSheet -> isSortSheetVisible = true
                     is StockListEffect.ShowValuationDialog -> selectedValuation = effect.valuation
                     is StockListEffect.ShowErrorMessage ->
-                        snackbarHostState.showSnackbar(context.getString(effect.messageRes))
+                        snackbarHostState.showSnackbar(ResourceProvider.getString(effect.messageRes))
                 }
             }
         }
