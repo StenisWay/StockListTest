@@ -1,4 +1,4 @@
-package com.stenis.stocklisttest.feature.stocklist.data.mapper
+package com.stenis.stocklisttest.feature.stocklist.data.dto
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable

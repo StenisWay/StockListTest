@@ -2,10 +2,11 @@ package com.stenis.stocklisttest.feature.stocklist.data.repository
 
 import com.stenis.stocklisttest.core.network.TwseApiService
 import com.stenis.stocklisttest.feature.stocklist.data.datasource.StockRemoteDataSource
-import com.stenis.stocklisttest.feature.stocklist.data.mapper.StockDayAllDto
-import com.stenis.stocklisttest.feature.stocklist.data.mapper.StockDayAvgDto
-import com.stenis.stocklisttest.feature.stocklist.data.mapper.StockValuationDto
+import com.stenis.stocklisttest.feature.stocklist.data.dto.StockDayAllDto
+import com.stenis.stocklisttest.feature.stocklist.data.dto.StockDayAvgDto
+import com.stenis.stocklisttest.feature.stocklist.data.dto.StockValuationDto
 import com.stenis.stocklisttest.feature.stocklist.presentation.model.PriceTrend
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -19,8 +20,8 @@ class StockRepositoryTest {
     fun `second call uses cache without calling api again`() = runTest {
         val repository = StockRepository(StockRemoteDataSource(api), StandardTestDispatcher(testScheduler))
 
-        repository.getStocks()
-        repository.getStocks()
+        repository.getStocks().first()
+        repository.getStocks().first()
 
         assertEquals(1, api.dayAllCalls)
     }
@@ -29,8 +30,8 @@ class StockRepositoryTest {
     fun `force refresh calls api again`() = runTest {
         val repository = StockRepository(StockRemoteDataSource(api), StandardTestDispatcher(testScheduler))
 
-        repository.getStocks()
-        repository.getStocks(forceRefresh = true)
+        repository.getStocks().first()
+        repository.getStocks(forceRefresh = true).first()
 
         assertEquals(2, api.dayAllCalls)
     }
@@ -39,7 +40,7 @@ class StockRepositoryTest {
     fun `dto is merged by code and converted to ui data`() = runTest {
         val repository = StockRepository(StockRemoteDataSource(api), StandardTestDispatcher(testScheduler))
 
-        val stock = repository.getStocks().single()
+        val stock = repository.getStocks().first().single()
 
         assertEquals("2330", stock.code)
         assertEquals("2,135", stock.closingPrice)

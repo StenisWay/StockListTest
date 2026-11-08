@@ -1,8 +1,8 @@
 package com.stenis.stocklisttest.core.network
 
-import com.stenis.stocklisttest.feature.stocklist.data.mapper.StockDayAllDto
-import com.stenis.stocklisttest.feature.stocklist.data.mapper.StockDayAvgDto
-import com.stenis.stocklisttest.feature.stocklist.data.mapper.StockValuationDto
+import com.stenis.stocklisttest.feature.stocklist.data.dto.StockDayAllDto
+import com.stenis.stocklisttest.feature.stocklist.data.dto.StockDayAvgDto
+import com.stenis.stocklisttest.feature.stocklist.data.dto.StockValuationDto
 import retrofit2.http.GET
 
 /** 臺灣證券交易所 OpenAPI：https://openapi.twse.com.tw/ */

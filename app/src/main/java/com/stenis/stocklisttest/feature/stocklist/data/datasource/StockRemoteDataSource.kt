@@ -1,9 +1,9 @@
 package com.stenis.stocklisttest.feature.stocklist.data.datasource
 
 import com.stenis.stocklisttest.core.network.TwseApiService
-import com.stenis.stocklisttest.feature.stocklist.data.mapper.StockDayAllDto
-import com.stenis.stocklisttest.feature.stocklist.data.mapper.StockDayAvgDto
-import com.stenis.stocklisttest.feature.stocklist.data.mapper.StockValuationDto
+import com.stenis.stocklisttest.feature.stocklist.data.dto.StockDayAllDto
+import com.stenis.stocklisttest.feature.stocklist.data.dto.StockDayAvgDto
+import com.stenis.stocklisttest.feature.stocklist.data.dto.StockValuationDto
 
 /**
  * 股票清單的遠端資料來源，只負責呼叫臺灣證券交易所 OpenAPI，不做資料轉換或合併。

@@ -7,5 +7,10 @@ enum class StockSortOrder {
 
     /** 依股票代號升序 */
     CODE_ASCENDING,
-}
+    ;
 
+    companion object {
+        /** bottom sheet 預設的排序方式 */
+        val DEFAULT = CODE_DESCENDING
+    }
+}

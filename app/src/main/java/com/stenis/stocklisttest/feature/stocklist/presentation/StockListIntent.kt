@@ -7,7 +7,7 @@ import com.stenis.stocklisttest.feature.stocklist.presentation.model.StockSortOr
 /** 股票清單畫面的使用者意圖 */
 sealed interface StockListIntent : UiIntent {
 
-    /** 載入股票清單（首次進入、重試），有快取時使用快取 */
+    /** 失敗後重試取得股票清單，有快取時使用快取 */
     data object GetStockItemList : StockListIntent
 
     /** 下拉刷新：忽略快取重新呼叫 API */

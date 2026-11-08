@@ -3,6 +3,7 @@ package com.stenis.stocklisttest.feature.stocklist.presentation
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -48,6 +49,7 @@ import com.stenis.stocklisttest.feature.stocklist.presentation.component.StockIt
 import com.stenis.stocklisttest.feature.stocklist.presentation.component.StockSortBottomSheet
 import com.stenis.stocklisttest.feature.stocklist.presentation.component.StockValuationDialog
 import com.stenis.stocklisttest.feature.stocklist.presentation.model.StockItemUiModel
+import com.stenis.stocklisttest.feature.stocklist.presentation.model.StockSortOrder
 import com.stenis.stocklisttest.feature.stocklist.presentation.model.StockValuationUiModel
 import com.stenis.stocklisttest.feature.stocklist.presentation.preview.StockPreviewData
 import com.stenis.stocklisttest.ui.theme.AppTheme
@@ -89,7 +91,7 @@ fun StockListRoute(
 
     if (isSortSheetVisible) {
         StockSortBottomSheet(
-            selectedOrder = state.sortOrder,
+            selectedOrder = (state as? StockListUiState.Success)?.sortOrder ?: StockSortOrder.DEFAULT,
             onOrderSelected = { order ->
                 isSortSheetVisible = false
                 viewModel.onIntent(StockListIntent.ChangeStockOrder(order))
@@ -114,7 +116,6 @@ fun StockListScreen(
     snackbarHostState: SnackbarHostState,
     onIntent: (StockListIntent) -> Unit,
 ) {
-    val onRefresh = { onIntent(StockListIntent.RefreshStockItemList) }
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
 
     Scaffold(
@@ -143,33 +144,45 @@ fun StockListScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { innerPadding ->
-        PullToRefreshBox(
-            isRefreshing = state.isLoading && state.stocks.isNotEmpty(),
-            onRefresh = onRefresh,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
-        ) {
-            when {
-                state.stocks.isNotEmpty() -> StockList(
-                    stocks = state.stocks,
-                    onStockClick = { onIntent(StockListIntent.ShowStockValuation(it)) },
-                )
+        val contentModifier = Modifier
+            .fillMaxSize()
+            .padding(innerPadding)
 
-                state.isLoading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
+        when (state) {
+            StockListUiState.Loading -> Box(contentModifier, contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
 
-                state.errorMessageRes != null -> MessageWithAction(
-                    message = stringResource(state.errorMessageRes),
+            is StockListUiState.Success -> PullToRefreshBox(
+                isRefreshing = state.isRefreshing,
+                onRefresh = { onIntent(StockListIntent.RefreshStockItemList) },
+                modifier = contentModifier,
+            ) {
+                if (state.stocks.isEmpty()) {
+                    // 空清單仍可下拉刷新，需要可捲動的容器
+                    LazyColumn(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
+                        item {
+                            Text(
+                                text = stringResource(R.string.stock_list_empty),
+                                modifier = Modifier.padding(top = 120.dp),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                } else {
+                    StockList(
+                        stocks = state.stocks,
+                        onStockClick = { onIntent(StockListIntent.ShowStockValuation(it)) },
+                    )
+                }
+            }
+
+            is StockListUiState.Failure -> Box(contentModifier, contentAlignment = Alignment.Center) {
+                MessageWithAction(
+                    message = stringResource(state.messageRes),
                     actionText = stringResource(R.string.stock_list_retry),
-                    onAction = onRefresh,
-                    modifier = Modifier.align(Alignment.Center),
-                )
-
-                else -> MessageWithAction(
-                    message = stringResource(R.string.stock_list_empty),
-                    actionText = stringResource(R.string.stock_list_retry),
-                    onAction = onRefresh,
-                    modifier = Modifier.align(Alignment.Center),
+                    onAction = { onIntent(StockListIntent.GetStockItemList) },
                 )
             }
         }
@@ -239,9 +252,7 @@ private fun MessageWithAction(
 private fun StockListScreenPreview() {
     StockListTestTheme {
         StockListScreen(
-            state = StockListUiState(
-                stocks = StockPreviewData.stocks,
-            ),
+            state = StockListUiState.Success(stocks = StockPreviewData.stocks),
             snackbarHostState = remember { SnackbarHostState() },
             onIntent = {},
         )
@@ -253,7 +264,7 @@ private fun StockListScreenPreview() {
 private fun StockListScreenErrorPreview() {
     StockListTestTheme {
         StockListScreen(
-            state = StockListUiState(errorMessageRes = R.string.stock_list_error_load_failed),
+            state = StockListUiState.Failure(R.string.stock_list_error_load_failed),
             snackbarHostState = remember { SnackbarHostState() },
             onIntent = {},
         )
