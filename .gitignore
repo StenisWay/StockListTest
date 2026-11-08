@@ -1,15 +1,38 @@
-*.iml
-.gradle
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
-.DS_Store
-/build
-/captures
-.externalNativeBuild
-.cxx
+# Gradle
+.gradle/
+build/
+.kotlin/
+
+# 本機設定（SDK 路徑、金鑰等）
 local.properties
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+captures/
+.navigation/
+
+# Native build
+.externalNativeBuild/
+.cxx/
+
+# 產出檔與簽章
+*.apk
+*.aab
+*.ap_
+*.dex
+*.jks
+*.keystore
+output-metadata.json
+
+# Log 與暫存
+*.log
+*.hprof
+*.tmp
+
+# 作業系統
+.DS_Store
+Thumbs.db
