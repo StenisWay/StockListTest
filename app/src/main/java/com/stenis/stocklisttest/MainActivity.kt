@@ -24,8 +24,9 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            val themeMode by themeRepository.themeMode.collectAsStateWithLifecycle()
-            val isDarkTheme = when (themeMode) {
+            // DataStore 讀取完成前不繪製畫面，避免先閃一下預設主題
+            val themeMode by themeRepository.themeMode.collectAsStateWithLifecycle(initialValue = null)
+            val isDarkTheme = when (themeMode ?: return@setContent) {
                 ThemeMode.SYSTEM -> isSystemInDarkTheme()
                 ThemeMode.LIGHT -> false
                 ThemeMode.DARK -> true

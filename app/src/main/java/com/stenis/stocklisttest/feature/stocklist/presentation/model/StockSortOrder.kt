@@ -9,9 +9,3 @@ enum class StockSortOrder {
     CODE_ASCENDING,
 }
 
-/** 依排序方式排列卡片 */
-fun List<StockItemUiModel>.sortedBy(order: StockSortOrder): List<StockItemUiModel> =
-    when (order) {
-        StockSortOrder.CODE_DESCENDING -> sortedByDescending { it.code }
-        StockSortOrder.CODE_ASCENDING -> sortedBy { it.code }
-    }

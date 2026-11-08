@@ -44,14 +44,12 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import com.stenis.stocklisttest.R
-import com.stenis.stocklisttest.feature.stocklist.data.mock.StockMockData
 import com.stenis.stocklisttest.feature.stocklist.presentation.component.StockItemCard
 import com.stenis.stocklisttest.feature.stocklist.presentation.component.StockSortBottomSheet
 import com.stenis.stocklisttest.feature.stocklist.presentation.component.StockValuationDialog
 import com.stenis.stocklisttest.feature.stocklist.presentation.model.StockItemUiModel
-import com.stenis.stocklisttest.feature.stocklist.presentation.model.StockSortOrder
 import com.stenis.stocklisttest.feature.stocklist.presentation.model.StockValuationUiModel
-import com.stenis.stocklisttest.feature.stocklist.presentation.model.sortedBy
+import com.stenis.stocklisttest.feature.stocklist.presentation.preview.StockPreviewData
 import com.stenis.stocklisttest.ui.theme.AppTheme
 import com.stenis.stocklisttest.ui.theme.StockListTestTheme
 import org.koin.compose.viewmodel.koinViewModel
@@ -116,7 +114,7 @@ fun StockListScreen(
     snackbarHostState: SnackbarHostState,
     onIntent: (StockListIntent) -> Unit,
 ) {
-    val onRefresh = { onIntent(StockListIntent.GetStockItemList) }
+    val onRefresh = { onIntent(StockListIntent.RefreshStockItemList) }
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
 
     Scaffold(
@@ -178,14 +176,14 @@ fun StockListScreen(
     }
 }
 
-/** 深色 / 淺色切換：淺色時顯示月亮（點擊切到深色），深色時顯示太陽 */
+/** 深色 / 淺色切換：icon 顯示目前的模式（深色為月亮、淺色為太陽），點擊切換到另一個模式 */
 @Composable
 private fun ThemeToggleButton(onThemeChange: (isDarkTheme: Boolean) -> Unit) {
     val isDarkTheme = AppTheme.isDarkTheme
     IconButton(onClick = { onThemeChange(!isDarkTheme) }) {
         Crossfade(targetState = isDarkTheme, label = "ThemeIcon") { isDark ->
             Icon(
-                painter = painterResource(if (isDark) R.drawable.ic_light_mode else R.drawable.ic_dark_mode),
+                painter = painterResource(if (isDark) R.drawable.ic_dark_mode else R.drawable.ic_light_mode),
                 contentDescription = stringResource(
                     if (isDark) R.string.theme_switch_to_light else R.string.theme_switch_to_dark,
                 ),
@@ -242,7 +240,7 @@ private fun StockListScreenPreview() {
     StockListTestTheme {
         StockListScreen(
             state = StockListUiState(
-                stocks = StockMockData.stockItems.sortedBy(StockSortOrder.CODE_DESCENDING),
+                stocks = StockPreviewData.stocks,
             ),
             snackbarHostState = remember { SnackbarHostState() },
             onIntent = {},

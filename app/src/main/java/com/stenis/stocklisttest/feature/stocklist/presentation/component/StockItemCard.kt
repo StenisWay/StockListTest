@@ -25,7 +25,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.stenis.stocklisttest.R
-import com.stenis.stocklisttest.feature.stocklist.data.mock.StockMockData
+import com.stenis.stocklisttest.feature.stocklist.presentation.preview.StockPreviewData
 import com.stenis.stocklisttest.feature.stocklist.presentation.model.PriceTrend
 import com.stenis.stocklisttest.feature.stocklist.presentation.model.StockItemUiModel
 import com.stenis.stocklisttest.ui.theme.StockListTestTheme
@@ -171,7 +171,7 @@ private fun TradeInfo(
 private fun StockItemCardPreview() {
     StockListTestTheme {
         StockItemCard(
-            stock = StockMockData.stockItems.first(),
+            stock = StockPreviewData.stocks.first(),
             onClick = {},
             modifier = Modifier.padding(16.dp),
         )
