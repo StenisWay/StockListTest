@@ -3,7 +3,6 @@ package com.stenis.stocklisttest.feature.stocklist.presentation
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -28,7 +27,10 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -37,7 +39,10 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import com.stenis.stocklisttest.R
 import com.stenis.stocklisttest.feature.stocklist.data.mock.StockMockData
 import com.stenis.stocklisttest.feature.stocklist.presentation.component.StockItemCard
@@ -45,67 +50,86 @@ import com.stenis.stocklisttest.feature.stocklist.presentation.component.StockSo
 import com.stenis.stocklisttest.feature.stocklist.presentation.component.StockValuationDialog
 import com.stenis.stocklisttest.feature.stocklist.presentation.model.StockItemUiModel
 import com.stenis.stocklisttest.feature.stocklist.presentation.model.StockSortOrder
+import com.stenis.stocklisttest.feature.stocklist.presentation.model.StockValuationUiModel
 import com.stenis.stocklisttest.feature.stocklist.presentation.model.sortedBy
-import com.stenis.stocklisttest.feature.stocklist.presentation.model.toStockItemUiModels
 import com.stenis.stocklisttest.ui.theme.AppTheme
 import com.stenis.stocklisttest.ui.theme.StockListTestTheme
 import org.koin.compose.viewmodel.koinViewModel
 
-/** 連接 ViewModel 的入口 */
+/** 連接 ViewModel 的入口：收集 State、處理 Effect，並管理 dialog / bottom sheet 的顯示 */
 @Composable
 fun StockListRoute(
     viewModel: StockListViewModel = koinViewModel(),
 ) {
-    val state by viewModel.state.collectAsStateWithLifecycle()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    var isSortSheetVisible by rememberSaveable { mutableStateOf(false) }
+    var selectedValuation by remember { mutableStateOf<StockValuationUiModel?>(null) }
+
+    // 只在畫面可見時處理 effect，背景時 effect 會留在 channel 等待
+    LaunchedEffect(viewModel, lifecycleOwner) {
+        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            viewModel.effect.collect { effect ->
+                when (effect) {
+                    StockListEffect.ShowSortBottomSheet -> isSortSheetVisible = true
+                    is StockListEffect.ShowValuationDialog -> selectedValuation = effect.valuation
+                    is StockListEffect.ShowErrorMessage ->
+                        snackbarHostState.showSnackbar(context.getString(effect.messageRes))
+                }
+            }
+        }
+    }
+
     StockListScreen(
         state = state,
-        onRefresh = viewModel::getStockItemList,
-        onSortClick = viewModel::showStockOptionBottomSheet,
-        onSortDismiss = viewModel::hideStockOptionBottomSheet,
-        onOrderSelected = viewModel::changeStockOrder,
-        onStockClick = viewModel::showStockValuation,
-        onValuationDismiss = viewModel::dismissStockValuation,
-        onErrorShown = viewModel::dismissError,
-        onThemeChange = viewModel::changeThemeMode,
+        snackbarHostState = snackbarHostState,
+        onIntent = viewModel::onIntent,
     )
+
+    if (isSortSheetVisible) {
+        StockSortBottomSheet(
+            selectedOrder = state.sortOrder,
+            onOrderSelected = { order ->
+                isSortSheetVisible = false
+                viewModel.onIntent(StockListIntent.ChangeStockOrder(order))
+            },
+            onDismiss = { isSortSheetVisible = false },
+        )
+    }
+
+    selectedValuation?.let { valuation ->
+        StockValuationDialog(
+            valuation = valuation,
+            onDismiss = { selectedValuation = null },
+        )
+    }
 }
 
-/** 無狀態畫面，只依 [state] 繪製，方便 Preview 與 UI 測試 */
+/** 無狀態畫面：只依 [state] 繪製，使用者操作一律轉成 [StockListIntent]，方便 Preview 與 UI 測試 */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StockListScreen(
-    state: StockListState,
-    onRefresh: () -> Unit,
-    onSortClick: () -> Unit,
-    onSortDismiss: () -> Unit,
-    onOrderSelected: (StockSortOrder) -> Unit,
-    onStockClick: (StockItemUiModel) -> Unit,
-    onValuationDismiss: () -> Unit,
-    onErrorShown: () -> Unit,
-    onThemeChange: (isDarkTheme: Boolean) -> Unit,
+    state: StockListUiState,
+    snackbarHostState: SnackbarHostState,
+    onIntent: (StockListIntent) -> Unit,
 ) {
+    val onRefresh = { onIntent(StockListIntent.GetStockItemList) }
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
-    val snackbarHostState = remember { SnackbarHostState() }
-    val context = LocalContext.current
-
-    // 已有資料時，載入失敗以 Snackbar 提示，保留舊資料
-    LaunchedEffect(state.errorMessageRes, state.stocks.isEmpty()) {
-        val messageRes = state.errorMessageRes
-        if (messageRes != null && state.stocks.isNotEmpty()) {
-            snackbarHostState.showSnackbar(context.getString(messageRes))
-            onErrorShown()
-        }
-    }
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.stock_list_title)) },
-                navigationIcon = { ThemeToggleButton(onThemeChange = onThemeChange) },
+                navigationIcon = {
+                    ThemeToggleButton(onThemeChange = { onIntent(StockListIntent.ChangeThemeMode(it)) })
+                },
                 actions = {
                     OutlinedIconButton(
-                        onClick = onSortClick,
+                        onClick = { onIntent(StockListIntent.ShowStockOptionBottomSheet) },
                         modifier = Modifier.padding(end = 8.dp),
                         shape = RoundedCornerShape(3.dp),
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
@@ -131,7 +155,7 @@ fun StockListScreen(
             when {
                 state.stocks.isNotEmpty() -> StockList(
                     stocks = state.stocks,
-                    onStockClick = onStockClick,
+                    onStockClick = { onIntent(StockListIntent.ShowStockValuation(it)) },
                 )
 
                 state.isLoading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
@@ -151,21 +175,6 @@ fun StockListScreen(
                 )
             }
         }
-    }
-
-    if (state.isSortSheetVisible) {
-        StockSortBottomSheet(
-            selectedOrder = state.sortOrder,
-            onOrderSelected = onOrderSelected,
-            onDismiss = onSortDismiss,
-        )
-    }
-
-    state.selectedValuation?.let { valuation ->
-        StockValuationDialog(
-            valuation = valuation,
-            onDismiss = onValuationDismiss,
-        )
     }
 }
 
@@ -232,19 +241,11 @@ private fun MessageWithAction(
 private fun StockListScreenPreview() {
     StockListTestTheme {
         StockListScreen(
-            state = StockListState(
-                stocks = StockMockData.stocks
-                    .toStockItemUiModels()
-                    .sortedBy(StockSortOrder.CODE_DESCENDING),
+            state = StockListUiState(
+                stocks = StockMockData.stockItems.sortedBy(StockSortOrder.CODE_DESCENDING),
             ),
-            onRefresh = {},
-            onSortClick = {},
-            onSortDismiss = {},
-            onOrderSelected = {},
-            onStockClick = {},
-            onValuationDismiss = {},
-            onErrorShown = {},
-            onThemeChange = {},
+            snackbarHostState = remember { SnackbarHostState() },
+            onIntent = {},
         )
     }
 }
@@ -253,18 +254,10 @@ private fun StockListScreenPreview() {
 @Composable
 private fun StockListScreenErrorPreview() {
     StockListTestTheme {
-        Box {
-            StockListScreen(
-                state = StockListState(errorMessageRes = R.string.stock_list_error_load_failed),
-                onRefresh = {},
-                onSortClick = {},
-                onSortDismiss = {},
-                onOrderSelected = {},
-                onStockClick = {},
-                onValuationDismiss = {},
-                onErrorShown = {},
-                onThemeChange = {},
-            )
-        }
+        StockListScreen(
+            state = StockListUiState(errorMessageRes = R.string.stock_list_error_load_failed),
+            snackbarHostState = remember { SnackbarHostState() },
+            onIntent = {},
+        )
     }
 }

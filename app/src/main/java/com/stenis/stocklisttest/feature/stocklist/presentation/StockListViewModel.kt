@@ -1,100 +1,80 @@
 package com.stenis.stocklisttest.feature.stocklist.presentation
 
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.stenis.stocklisttest.R
+import com.stenis.stocklisttest.core.presentation.BaseViewModel
 import com.stenis.stocklisttest.core.theme.ThemeMode
 import com.stenis.stocklisttest.core.theme.ThemeRepository
 import com.stenis.stocklisttest.feature.stocklist.data.repository.StockRepository
 import com.stenis.stocklisttest.feature.stocklist.presentation.model.StockItemUiModel
 import com.stenis.stocklisttest.feature.stocklist.presentation.model.StockSortOrder
 import com.stenis.stocklisttest.feature.stocklist.presentation.model.sortedBy
-import com.stenis.stocklisttest.feature.stocklist.presentation.model.toStockItemUiModels
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 class StockListViewModel(
     private val stockRepository: StockRepository,
     private val themeRepository: ThemeRepository,
-    private val defaultDispatcher: CoroutineDispatcher = Dispatchers.Default,
-) : ViewModel() {
-
-    private val _state = MutableStateFlow(StockListState())
-    val state: StateFlow<StockListState> = _state.asStateFlow()
-
-    private var loadJob: Job? = null
+) : BaseViewModel<StockListUiState, StockListIntent, StockListEffect>(StockListUiState()) {
 
     init {
-        getStockItemList()
+        onIntent(StockListIntent.GetStockItemList)
+    }
+
+    override fun handleIntent(intent: StockListIntent) {
+        when (intent) {
+            StockListIntent.GetStockItemList -> getStockItemList()
+            is StockListIntent.ChangeStockOrder -> changeStockOrder(intent.order)
+            StockListIntent.ShowStockOptionBottomSheet -> showStockOptionBottomSheet()
+            is StockListIntent.ShowStockValuation -> showStockValuation(intent.stock)
+            is StockListIntent.ChangeThemeMode -> changeThemeMode(intent.isDarkTheme)
+        }
     }
 
     /** 載入（或重新整理）股票清單；載入中重複呼叫會被忽略 */
-    fun getStockItemList() {
-        if (loadJob?.isActive == true) return
-        loadJob = viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, errorMessageRes = null) }
+    private fun getStockItemList() {
+        if (currentState.isLoading) return
+        setState { copy(isLoading = true, errorMessageRes = null) }
+
+        viewModelScope.launch {
             try {
-                val stocks = stockRepository.getStocks()
-                val items = withContext(defaultDispatcher) {
-                    stocks.toStockItemUiModels().sortedBy(_state.value.sortOrder)
-                }
-                _state.update { it.copy(isLoading = false, stocks = items) }
+                val items = stockRepository.getStocks().sortedBy(currentState.sortOrder)
+                setState { copy(isLoading = false, stocks = items) }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _state.update {
-                    it.copy(isLoading = false, errorMessageRes = R.string.stock_list_error_load_failed)
+                val messageRes = R.string.stock_list_error_load_failed
+                if (currentState.stocks.isEmpty()) {
+                    // 沒有資料：整頁顯示錯誤與重試
+                    setState { copy(isLoading = false, errorMessageRes = messageRes) }
+                } else {
+                    // 已有資料：保留舊資料，以 snackbar 提示
+                    setState { copy(isLoading = false) }
+                    sendEffect(StockListEffect.ShowErrorMessage(messageRes))
                 }
             }
         }
     }
 
-    /** 變更排序方式並關閉 bottom sheet */
-    fun changeStockOrder(order: StockSortOrder) {
-        _state.update {
-            it.copy(
-                sortOrder = order,
-                stocks = if (order == it.sortOrder) it.stocks else it.stocks.sortedBy(order),
-                isSortSheetVisible = false,
-            )
+    /** 變更排序方式 */
+    private fun changeStockOrder(order: StockSortOrder) {
+        setState {
+            if (order == sortOrder) this else copy(sortOrder = order, stocks = stocks.sortedBy(order))
         }
     }
 
-    /** 顯示排序 bottom sheet */
-    fun showStockOptionBottomSheet() {
-        _state.update { it.copy(isSortSheetVisible = true) }
+    /** 請 UI 顯示排序 bottom sheet */
+    private fun showStockOptionBottomSheet() {
+        sendEffect(StockListEffect.ShowSortBottomSheet)
     }
 
-    /** 關閉排序 bottom sheet（下滑或點擊外側） */
-    fun hideStockOptionBottomSheet() {
-        _state.update { it.copy(isSortSheetVisible = false) }
-    }
-
-    /** 點擊卡片，顯示估值 alert */
-    fun showStockValuation(stock: StockItemUiModel) {
-        _state.update { it.copy(selectedValuation = stock.valuation) }
-    }
-
-    /** 關閉估值 alert */
-    fun dismissStockValuation() {
-        _state.update { it.copy(selectedValuation = null) }
+    /** 請 UI 顯示估值 dialog */
+    private fun showStockValuation(stock: StockItemUiModel) {
+        sendEffect(StockListEffect.ShowValuationDialog(stock.valuation))
     }
 
     /** 切換深色 / 淺色主題 */
-    fun changeThemeMode(isDarkTheme: Boolean) {
+    private fun changeThemeMode(isDarkTheme: Boolean) {
         themeRepository.setThemeMode(if (isDarkTheme) ThemeMode.DARK else ThemeMode.LIGHT)
-    }
-
-    /** 錯誤訊息已顯示，清除錯誤 */
-    fun dismissError() {
-        _state.update { it.copy(errorMessageRes = null) }
     }
 }

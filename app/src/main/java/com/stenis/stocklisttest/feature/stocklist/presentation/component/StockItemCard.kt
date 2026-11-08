@@ -28,7 +28,6 @@ import com.stenis.stocklisttest.R
 import com.stenis.stocklisttest.feature.stocklist.data.mock.StockMockData
 import com.stenis.stocklisttest.feature.stocklist.presentation.model.PriceTrend
 import com.stenis.stocklisttest.feature.stocklist.presentation.model.StockItemUiModel
-import com.stenis.stocklisttest.feature.stocklist.presentation.model.toStockItemUiModels
 import com.stenis.stocklisttest.ui.theme.StockListTestTheme
 
 /** 股票卡片：代號、名稱、價格資訊與成交資訊，點擊後顯示估值 */
@@ -172,7 +171,7 @@ private fun TradeInfo(
 private fun StockItemCardPreview() {
     StockListTestTheme {
         StockItemCard(
-            stock = StockMockData.stocks.toStockItemUiModels().first(),
+            stock = StockMockData.stockItems.first(),
             onClick = {},
             modifier = Modifier.padding(16.dp),
         )

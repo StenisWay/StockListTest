@@ -1,4 +1,4 @@
-package com.stenis.stocklisttest.feature.stocklist.di
+package com.stenis.stocklisttest.core.di
 
 import com.stenis.stocklisttest.feature.stocklist.data.datasource.StockRemoteDataSource
 import com.stenis.stocklisttest.feature.stocklist.data.repository.StockRepository

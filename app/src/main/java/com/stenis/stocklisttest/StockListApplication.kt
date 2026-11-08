@@ -3,7 +3,7 @@ package com.stenis.stocklisttest
 import android.app.Application
 import com.stenis.stocklisttest.core.di.networkModule
 import com.stenis.stocklisttest.core.di.themeModule
-import com.stenis.stocklisttest.feature.stocklist.di.stockListModule
+import com.stenis.stocklisttest.core.di.stockListModule
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.startKoin
