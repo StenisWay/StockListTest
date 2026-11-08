@@ -1,0 +1,59 @@
+package com.stenis.stocklisttest.feature.stocklist.data.repository
+
+import com.stenis.stocklisttest.feature.stocklist.data.datasource.StockRemoteDataSource
+import com.stenis.stocklisttest.feature.stocklist.data.mapper.toStock
+import com.stenis.stocklisttest.feature.stocklist.data.mock.StockMockData
+import com.stenis.stocklisttest.feature.stocklist.domain.model.Stock
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
+
+class StockRepository(
+    private val remoteDataSource: StockRemoteDataSource,
+    private val dispatcher: CoroutineDispatcher = Dispatchers.Default,
+) {
+
+    /**
+     * 取得最近一個交易日的上市個股清單。
+     *
+     * 目前回傳假資料；串接 API 時改為 `return fetchStocksFromApi()`。
+     */
+    suspend fun getStocks(): List<Stock> {
+        // 模擬網路延遲，方便看到 loading
+        delay(MOCK_DELAY_MILLIS)
+        return StockMockData.stocks
+    }
+
+    /** 同時呼叫三支 API，以日成交資訊為主依股票代號合併 */
+    @Suppress("unused") // 串接 API 時使用
+    private suspend fun fetchStocksFromApi(): List<Stock> = coroutineScope {
+        // 三支 API 互不相依，同時發出
+        val dayAllDeferred = async { remoteDataSource.getStockDayAll() }
+        val dayAvgDeferred = async { remoteDataSource.getStockDayAverages() }
+        val valuationDeferred = async { remoteDataSource.getStockValuations() }
+
+        val dayAll = dayAllDeferred.await()
+        val dayAvg = dayAvgDeferred.await()
+        val valuations = valuationDeferred.await()
+
+        // 月平均價約 2.8 萬筆（含權證），合併放到背景執行緒
+        withContext(dispatcher) {
+            val dayAvgByCode = dayAvg.associateBy { it.code.trim() }
+            val valuationByCode = valuations.associateBy { it.code.trim() }
+            dayAll.map { day ->
+                val code = day.code.trim()
+                day.toStock(
+                    dayAvg = dayAvgByCode[code],
+                    valuation = valuationByCode[code],
+                )
+            }
+        }
+    }
+
+    private companion object {
+        const val MOCK_DELAY_MILLIS = 800L
+    }
+}

@@ -1,6 +1,7 @@
 package com.stenis.stocklisttest.di
 
 import com.stenis.stocklisttest.appModules
+import kotlinx.coroutines.CoroutineDispatcher
 import org.koin.core.annotation.KoinExperimentalAPI
 import org.koin.dsl.module
 import org.koin.test.verify.verify
@@ -12,6 +13,7 @@ class KoinModulesTest {
     @OptIn(KoinExperimentalAPI::class)
     @Test
     fun `all koin modules are resolvable`() {
-        module { includes(appModules) }.verify()
+        // CoroutineDispatcher 為建構子預設參數，不需註冊
+        module { includes(appModules) }.verify(extraTypes = listOf(CoroutineDispatcher::class))
     }
 }
