@@ -1,5 +1,6 @@
 package com.stenis.stocklisttest.feature.stocklist.presentation
 
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -46,6 +47,7 @@ import com.stenis.stocklisttest.feature.stocklist.presentation.model.StockItemUi
 import com.stenis.stocklisttest.feature.stocklist.presentation.model.StockSortOrder
 import com.stenis.stocklisttest.feature.stocklist.presentation.model.sortedBy
 import com.stenis.stocklisttest.feature.stocklist.presentation.model.toStockItemUiModels
+import com.stenis.stocklisttest.ui.theme.AppTheme
 import com.stenis.stocklisttest.ui.theme.StockListTestTheme
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -64,6 +66,7 @@ fun StockListRoute(
         onStockClick = viewModel::showStockValuation,
         onValuationDismiss = viewModel::dismissStockValuation,
         onErrorShown = viewModel::dismissError,
+        onThemeChange = viewModel::changeThemeMode,
     )
 }
 
@@ -79,6 +82,7 @@ fun StockListScreen(
     onStockClick: (StockItemUiModel) -> Unit,
     onValuationDismiss: () -> Unit,
     onErrorShown: () -> Unit,
+    onThemeChange: (isDarkTheme: Boolean) -> Unit,
 ) {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -98,6 +102,7 @@ fun StockListScreen(
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.stock_list_title)) },
+                navigationIcon = { ThemeToggleButton(onThemeChange = onThemeChange) },
                 actions = {
                     OutlinedIconButton(
                         onClick = onSortClick,
@@ -164,6 +169,22 @@ fun StockListScreen(
     }
 }
 
+/** 深色 / 淺色切換：淺色時顯示月亮（點擊切到深色），深色時顯示太陽 */
+@Composable
+private fun ThemeToggleButton(onThemeChange: (isDarkTheme: Boolean) -> Unit) {
+    val isDarkTheme = AppTheme.isDarkTheme
+    IconButton(onClick = { onThemeChange(!isDarkTheme) }) {
+        Crossfade(targetState = isDarkTheme, label = "ThemeIcon") { isDark ->
+            Icon(
+                painter = painterResource(if (isDark) R.drawable.ic_light_mode else R.drawable.ic_dark_mode),
+                contentDescription = stringResource(
+                    if (isDark) R.string.theme_switch_to_light else R.string.theme_switch_to_dark,
+                ),
+            )
+        }
+    }
+}
+
 @Composable
 private fun StockList(
     stocks: List<StockItemUiModel>,
@@ -223,6 +244,7 @@ private fun StockListScreenPreview() {
             onStockClick = {},
             onValuationDismiss = {},
             onErrorShown = {},
+            onThemeChange = {},
         )
     }
 }
@@ -241,6 +263,7 @@ private fun StockListScreenErrorPreview() {
                 onStockClick = {},
                 onValuationDismiss = {},
                 onErrorShown = {},
+                onThemeChange = {},
             )
         }
     }

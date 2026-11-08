@@ -3,6 +3,8 @@ package com.stenis.stocklisttest.feature.stocklist.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.stenis.stocklisttest.R
+import com.stenis.stocklisttest.core.theme.ThemeMode
+import com.stenis.stocklisttest.core.theme.ThemeRepository
 import com.stenis.stocklisttest.feature.stocklist.data.repository.StockRepository
 import com.stenis.stocklisttest.feature.stocklist.presentation.model.StockItemUiModel
 import com.stenis.stocklisttest.feature.stocklist.presentation.model.StockSortOrder
@@ -21,6 +23,7 @@ import kotlinx.coroutines.withContext
 
 class StockListViewModel(
     private val stockRepository: StockRepository,
+    private val themeRepository: ThemeRepository,
     private val defaultDispatcher: CoroutineDispatcher = Dispatchers.Default,
 ) : ViewModel() {
 
@@ -83,6 +86,11 @@ class StockListViewModel(
     /** 關閉估值 alert */
     fun dismissStockValuation() {
         _state.update { it.copy(selectedValuation = null) }
+    }
+
+    /** 切換深色 / 淺色主題 */
+    fun changeThemeMode(isDarkTheme: Boolean) {
+        themeRepository.setThemeMode(if (isDarkTheme) ThemeMode.DARK else ThemeMode.LIGHT)
     }
 
     /** 錯誤訊息已顯示，清除錯誤 */

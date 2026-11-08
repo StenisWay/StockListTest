@@ -2,6 +2,7 @@ package com.stenis.stocklisttest
 
 import android.app.Application
 import com.stenis.stocklisttest.core.di.networkModule
+import com.stenis.stocklisttest.core.di.themeModule
 import com.stenis.stocklisttest.feature.stocklist.di.stockListModule
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
@@ -23,5 +24,6 @@ class StockListApplication : Application() {
 /** App 所有 Koin module，新增 feature 時加在這裡 */
 val appModules = listOf(
     networkModule,
+    themeModule,
     stockListModule,
 )

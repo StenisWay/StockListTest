@@ -10,5 +10,5 @@ import org.koin.dsl.module
 val stockListModule = module {
     singleOf(::StockRemoteDataSource)
     single { StockRepository(get()) }
-    viewModel { StockListViewModel(get()) }
+    viewModel { StockListViewModel(get(), get()) }
 }
