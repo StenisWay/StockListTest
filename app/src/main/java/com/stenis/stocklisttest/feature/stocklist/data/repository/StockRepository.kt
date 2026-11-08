@@ -13,7 +13,6 @@ import com.stenis.stocklisttest.feature.stocklist.data.dto.StockValuationDto
 import com.stenis.stocklisttest.feature.stocklist.presentation.model.PriceTrend
 import com.stenis.stocklisttest.feature.stocklist.presentation.model.StockItemUiModel
 import com.stenis.stocklisttest.feature.stocklist.presentation.model.StockValuationUiModel
-import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -28,11 +27,10 @@ import kotlinx.coroutines.sync.withLock
  *
  * 不需要即時報價，取得 API 資料並轉換後快取在記憶體（Koin singleton，App 存活期間有效），
  * 之後有快取就直接回傳，只有 [getStocks] 帶 forceRefresh 時才重新呼叫 API。
- * API 呼叫、DTO 轉換與快取讀寫都在 [ioDispatcher] 執行。
+ * API 呼叫、DTO 轉換與快取讀寫都在 Dispatchers.IO 執行。
  */
 class StockRepository(
     private val remoteDataSource: StockRemoteDataSource,
-    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
 
     // 避免同時多次呼叫 API，也確保快取讀寫一致
@@ -54,7 +52,7 @@ class StockRepository(
             }
         }
         emit(stocks)
-    }.flowOn(ioDispatcher)
+    }.flowOn(Dispatchers.IO)
 
     /** 同時呼叫三支 API，將 DTO 依股票代號合併並轉成卡片資料 */
     private suspend fun fetchStocksFromApi(): List<StockItemUiModel> = coroutineScope {

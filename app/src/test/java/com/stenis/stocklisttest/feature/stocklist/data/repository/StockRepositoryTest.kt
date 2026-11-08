@@ -7,7 +7,6 @@ import com.stenis.stocklisttest.feature.stocklist.data.dto.StockDayAvgDto
 import com.stenis.stocklisttest.feature.stocklist.data.dto.StockValuationDto
 import com.stenis.stocklisttest.feature.stocklist.presentation.model.PriceTrend
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -18,7 +17,7 @@ class StockRepositoryTest {
 
     @Test
     fun `second call uses cache without calling api again`() = runTest {
-        val repository = StockRepository(StockRemoteDataSource(api), StandardTestDispatcher(testScheduler))
+        val repository = StockRepository(StockRemoteDataSource(api))
 
         repository.getStocks().first()
         repository.getStocks().first()
@@ -28,7 +27,7 @@ class StockRepositoryTest {
 
     @Test
     fun `force refresh calls api again`() = runTest {
-        val repository = StockRepository(StockRemoteDataSource(api), StandardTestDispatcher(testScheduler))
+        val repository = StockRepository(StockRemoteDataSource(api))
 
         repository.getStocks().first()
         repository.getStocks(forceRefresh = true).first()
@@ -38,7 +37,7 @@ class StockRepositoryTest {
 
     @Test
     fun `dto is merged by code and converted to ui data`() = runTest {
-        val repository = StockRepository(StockRemoteDataSource(api), StandardTestDispatcher(testScheduler))
+        val repository = StockRepository(StockRemoteDataSource(api))
 
         val stock = repository.getStocks().first().single()
 

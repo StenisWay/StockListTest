@@ -190,7 +190,7 @@ fun StockListScreen(
     }
 }
 
-/** 深色 / 淺色切換：icon 顯示目前的模式（深色為月亮、淺色為太陽），點擊切換到另一個模式 */
+/** 深色 / 淺色切換：icon 顯示目前的模式（淺色為太陽、深色為月亮），點擊切換到另一個模式 */
 @Composable
 private fun ThemeToggleButton(onThemeChange: (isDarkTheme: Boolean) -> Unit) {
     val isDarkTheme = AppTheme.isDarkTheme

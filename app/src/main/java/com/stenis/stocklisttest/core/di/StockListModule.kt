@@ -13,7 +13,7 @@ import org.koin.dsl.module
 val stockListModule = module {
     singleOf(::StockRemoteDataSource)
     // 快取在 repository，必須是 singleton
-    single { StockRepository(get()) }
+    singleOf(::StockRepository)
     factoryOf(::RemoveDuplicateStockCodeUseCase)
     factoryOf(::SortStockListUseCase)
     viewModelOf(::StockListViewModel)

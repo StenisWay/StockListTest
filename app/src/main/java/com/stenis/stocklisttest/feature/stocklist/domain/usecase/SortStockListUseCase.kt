@@ -2,16 +2,13 @@ package com.stenis.stocklisttest.feature.stocklist.domain.usecase
 
 import com.stenis.stocklisttest.feature.stocklist.presentation.model.StockItemUiModel
 import com.stenis.stocklisttest.feature.stocklist.presentation.model.StockSortOrder
-import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 
-/** 依排序方式排列股票清單，於 [defaultDispatcher] 執行 */
-class SortStockListUseCase(
-    private val defaultDispatcher: CoroutineDispatcher = Dispatchers.Default,
-) {
+/** 依排序方式排列股票清單，於 Dispatchers.Default 執行 */
+class SortStockListUseCase {
 
     operator fun invoke(
         stocks: Flow<List<StockItemUiModel>>,
@@ -24,5 +21,5 @@ class SortStockListUseCase(
                     StockSortOrder.CODE_ASCENDING -> list.sortedBy { it.code }
                 }
             }
-            .flowOn(defaultDispatcher)
+            .flowOn(Dispatchers.Default)
 }
