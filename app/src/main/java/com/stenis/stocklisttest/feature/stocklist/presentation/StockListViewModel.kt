@@ -3,6 +3,7 @@ package com.stenis.stocklisttest.feature.stocklist.presentation
 import androidx.lifecycle.viewModelScope
 import com.stenis.stocklisttest.R
 import com.stenis.stocklisttest.core.presentation.BaseViewModel
+import com.stenis.stocklisttest.core.presentation.UiState
 import com.stenis.stocklisttest.core.theme.ThemeMode
 import com.stenis.stocklisttest.core.theme.ThemeRepository
 import com.stenis.stocklisttest.feature.stocklist.data.repository.StockRepository
@@ -22,7 +23,7 @@ class StockListViewModel(
     private val themeRepository: ThemeRepository,
     private val removeDuplicateStockCode: RemoveDuplicateStockCodeUseCase,
     private val sortStockList: SortStockListUseCase,
-) : BaseViewModel<StockListUiState, StockListIntent, StockListEffect>(StockListUiState.Loading) {
+) : BaseViewModel<StockListUiState, StockListIntent, StockListEffect>() {
 
     init {
         fetchStocks(forceRefresh = false)
@@ -41,13 +42,13 @@ class StockListViewModel(
 
     /** 重試：只有在失敗狀態時才重新取得（有快取時使用快取） */
     private fun getStockItemList() {
-        if (currentState is StockListUiState.Failure) fetchStocks(forceRefresh = false)
+        if (currentState is UiState.Failure) fetchStocks(forceRefresh = false)
     }
 
     /** 下拉刷新：只有在已有資料且未刷新中時才重新呼叫 API */
     private fun refreshStockItemList() {
-        val state = currentState
-        if (state is StockListUiState.Success && !state.isRefreshing) fetchStocks(forceRefresh = true)
+        val data = currentData ?: return
+        if (!data.isRefreshing) fetchStocks(forceRefresh = true)
     }
 
     /**
@@ -55,7 +56,7 @@ class StockListViewModel(
      * 剛取得時就排序一次，符合 bottom sheet 預設的代號降序。
      */
     private fun fetchStocks(forceRefresh: Boolean) {
-        val sortOrder = (currentState as? StockListUiState.Success)?.sortOrder ?: StockSortOrder.DEFAULT
+        val sortOrder = currentData?.sortOrder ?: StockSortOrder.DEFAULT
 
         stockRepository.getStocks(forceRefresh)
             .let { stocks -> removeDuplicateStockCode(stocks) }
@@ -63,45 +64,42 @@ class StockListViewModel(
             .onStart {
                 setState {
                     // 已有資料時保留舊資料只顯示刷新中，否則進入整頁載入
-                    if (this is StockListUiState.Success) copy(isRefreshing = true) else StockListUiState.Loading
+                    if (this is UiState.Success) UiState.Success(data.copy(isRefreshing = true)) else UiState.Loading
                 }
             }
-            .onEach { stocks -> setState { StockListUiState.Success(stocks = stocks, sortOrder = sortOrder) } }
+            .onEach { stocks -> setState { UiState.Success(StockListUiState(stocks = stocks, sortOrder = sortOrder)) } }
             .catch { onLoadFailed() }
             .launchIn(viewModelScope)
     }
 
     private fun onLoadFailed() {
         val messageRes = R.string.stock_list_error_load_failed
-        val state = currentState
-        if (state is StockListUiState.Success) {
+        if (currentData != null) {
             // 已有資料：保留舊資料，以 snackbar 提示
-            setState { state.copy(isRefreshing = false) }
+            updateData { copy(isRefreshing = false) }
             sendEffect(StockListEffect.ShowErrorMessage(messageRes))
         } else {
-            setState { StockListUiState.Failure(messageRes) }
+            setState { UiState.Failure(messageRes) }
         }
     }
 
     /** 變更排序方式：先更新選取的排序，再於背景排序清單 */
     private fun changeStockOrder(order: StockSortOrder) {
-        val state = currentState as? StockListUiState.Success ?: return
-        if (order == state.sortOrder) return
-        setState { state.copy(sortOrder = order) }
+        val data = currentData ?: return
+        if (order == data.sortOrder) return
+        updateData { copy(sortOrder = order) }
 
-        sortStockList(flowOf(state.stocks), order)
+        sortStockList(flowOf(data.stocks), order)
             .onEach { sorted ->
-                setState {
-                    // 快速連續切換時，只套用最後選取的排序
-                    if (this is StockListUiState.Success && sortOrder == order) copy(stocks = sorted) else this
-                }
+                // 快速連續切換時，只套用最後選取的排序
+                updateData { if (sortOrder == order) copy(stocks = sorted) else this }
             }
             .launchIn(viewModelScope)
     }
 
     /** 請 UI 顯示排序 bottom sheet（有資料時才需要排序） */
     private fun showStockOptionBottomSheet() {
-        if (currentState is StockListUiState.Success) sendEffect(StockListEffect.ShowSortBottomSheet)
+        if (currentData != null) sendEffect(StockListEffect.ShowSortBottomSheet)
     }
 
     /** 請 UI 顯示估值 dialog */
